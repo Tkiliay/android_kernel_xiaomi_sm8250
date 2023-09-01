@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2018-2020, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 /* soc/qcom/cmd-db.h needs types.h */
@@ -388,19 +389,11 @@ static int a6xx_gmu_start(struct kgsl_device *device)
 	gmu_core_regwrite(device, A6XX_GMU_CM3_SYSRESET, 0);
 	/* Make sure the request completes before continuing */
 	wmb();
+
 	if (timed_poll_check(device,
 			A6XX_GMU_CM3_FW_INIT_RESULT,
 			val, GMU_START_TIMEOUT, mask)) {
-		u32 val;
-
-		/*
-		 * The breadcrumb is written to a gmu virtual mapping
-		 * which points to dtcm byte offset 0x3fdc.
-		 */
-		gmu_core_regread(device,
-			A6XX_GMU_CM3_DTCM_START + (0x3fdc >> 2), &val);
-		dev_err(&gmu->pdev->dev, "GMU doesn't boot: 0x%x\n", val);
-
+		dev_err(&gmu->pdev->dev, "GMU doesn't boot\n");
 		return -ETIMEDOUT;
 	}
 
@@ -876,7 +869,7 @@ static int a6xx_gmu_gfx_rail_on(struct kgsl_device *device)
 {
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	struct gmu_device *gmu = KGSL_GMU_DEVICE(device);
-	unsigned int perf_idx = pwr->num_pwrlevels - pwr->default_pwrlevel - 1;
+	unsigned int perf_idx = pwr->num_pwrlevels - 1;
 	uint32_t default_opp = gmu->rpmh_votes.gx_votes[perf_idx];
 
 	gmu_core_regwrite(device, A6XX_GMU_BOOT_SLUMBER_OPTION,
@@ -1297,8 +1290,8 @@ static int a6xx_gmu_notify_slumber(struct kgsl_device *device)
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 	struct kgsl_pwrctrl *pwr = &device->pwrctrl;
 	struct gmu_device *gmu = KGSL_GMU_DEVICE(device);
-	int bus_level = pwr->pwrlevels[pwr->default_pwrlevel].bus_freq;
-	int perf_idx = gmu->num_gpupwrlevels - pwr->default_pwrlevel - 1;
+	int bus_level = pwr->pwrlevels[pwr->num_pwrlevels - 1].bus_freq;
+	int perf_idx = gmu->num_gpupwrlevels - 1;
 	int ret, state;
 
 	/* Disable the power counter so that the GMU is not busy */

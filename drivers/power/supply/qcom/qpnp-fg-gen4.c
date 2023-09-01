@@ -5088,6 +5088,7 @@ static int fg_psy_get_property(struct power_supply *psy,
 	int64_t temp;
 	int vbatt_uv;
 	int shutdown_voltage;
+	int capacity_major, capacity_minor;
 	static bool shutdown_delay_cancel;
 	static bool last_shutdown_delay;
 
@@ -5159,15 +5160,13 @@ static int fg_psy_get_property(struct power_supply *psy,
 		break;
 #endif
 	case POWER_SUPPLY_PROP_CAPACITY:
-		rc = fg_gen4_get_prop_capacity(fg, &pval->intval);
-		//Using smooth battery capacity.
-		if (fg->param.batt_soc >= 0 && !chip->rapid_soc_dec_en && !chip->soc_scale_mode)
-			pval->intval = fg->param.batt_soc;
+		rc = fg_gen4_get_prop_capacity_raw(chip, &pval->intval);
+		capacity_major = pval->intval / 100;
+		capacity_minor = pval->intval % 100;
+		if (capacity_minor >= 50)
+			capacity_major++;
 
-		if (chip->dt.fg_increase_100soc_time) {
-			if (fg->param.smooth_batt_soc >= 0 && !chip->rapid_soc_dec_en && !chip->soc_scale_mode)
-				pval->intval = fg->param.smooth_batt_soc;
-		}
+		pval->intval = capacity_major;
 
 		//shutdown delay feature
 		if (chip->dt.shutdown_delay_enable) {
@@ -5293,11 +5292,7 @@ static int fg_psy_get_property(struct power_supply *psy,
 		rc = fg_gen4_get_charge_counter_shadow(chip, &pval->intval);
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNT:
-#ifdef CONFIG_BATT_VERIFY_BY_DS28E16
-		pval->intval = fg->maxim_cycle_count;
-#else
 		rc = get_cycle_count(chip->counter, &pval->intval);
-#endif
 		break;
 	case POWER_SUPPLY_PROP_CYCLE_COUNTS:
 		rc = get_cycle_counts(chip->counter, &pval->strval);
@@ -5401,6 +5396,7 @@ static int fg_psy_set_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
+/*
 		if (chip->cl->active) {
 			pr_warn("Capacity learning active!\n");
 			return 0;
@@ -5409,6 +5405,7 @@ static int fg_psy_set_property(struct power_supply *psy,
 			pr_err("charge_full is out of bounds\n");
 			return -EINVAL;
 		}
+*/
 		mutex_lock(&chip->cl->lock);
 		rc = fg_gen4_store_learned_capacity(chip, pval->intval);
 		if (!rc)

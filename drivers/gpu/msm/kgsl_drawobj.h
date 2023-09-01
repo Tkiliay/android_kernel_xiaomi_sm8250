@@ -1,6 +1,7 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
 /*
  * Copyright (c) 2016-2019, 2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #ifndef __KGSL_DRAWOBJ_H
@@ -70,8 +71,6 @@ struct kgsl_drawobj {
  * for easy access
  * @profile_index: Index to store the start/stop ticks in the kernel profiling
  * buffer
- * @submit_ticks: Variable to hold ticks at the time of
- *     command obj submit.
 
  */
 struct kgsl_drawobj_cmd {
@@ -86,7 +85,6 @@ struct kgsl_drawobj_cmd {
 	struct kgsl_mem_entry *profiling_buf_entry;
 	uint64_t profiling_buffer_gpuaddr;
 	unsigned int profile_index;
-	uint64_t submit_ticks;
 };
 
 /**
@@ -169,8 +167,8 @@ struct kgsl_drawobj_sync_event {
 	struct dma_fence *fence;
 	/** @cb: Callback struct for KGSL_CMD_SYNCPOINT_TYPE_TIMELINE */
 	struct dma_fence_cb cb;
-	/** @work : irq worker for KGSL_CMD_SYNCPOINT_TYPE_TIMELINE */
-	struct irq_work work;
+	/** @work : work_struct for KGSL_CMD_SYNCPOINT_TYPE_TIMELINE */
+	struct work_struct work;
 };
 
 /**
